@@ -29,12 +29,12 @@ jobs:
     - name: Build linux version
       run: |
         cd cmd/create-gp4
-        GOOS=windows go build -o ../../build/create-gp4 -modfile=go-linux.mod
+        go build -o ../../build/create-gp4 -modfile=go-linux.mod
         
     - name: Build macOS version
       run: |
         cd cmd/create-gp4
-        GOOS=windows go build -o ../../build/create-gp4-macos -modfile=go-linux.mod
+        GOOS=darwin go build -o ../../build/create-gp4-macos -modfile=go-linux.mod
     - name: Upload windows version
       uses: actions/upload-artifact@v2
       with:
