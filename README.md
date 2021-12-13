@@ -26,7 +26,7 @@ Usage of create-gp4:
 ### Example Usage
 
 ```
-./create-gp4 -out IV0000-BREW00083_00-HELLOWORLD000000.gp4 --content-id=IV0000-BREW00083_00-HELLOWORLD000000 --files eboot.bin sce_sys/about/right.sprx sce_sys/param.sfo sce_sys/icon0.png sce_module/libSceFios2.prx sce_module/libc.prx
+./create-gp4 -out IV0000-BREW00083_00-HELLOWORLD000000.gp4 --content-id=IV0000-BREW00083_00-HELLOWORLD000000 --files "eboot.bin sce_sys/about/right.sprx sce_sys/param.sfo sce_sys/icon0.png sce_module/libSceFios2.prx sce_module/libc.prx"
 ```
 
 ## Source code overview
