@@ -62,7 +62,7 @@ func createGP4(path string, contentID string, files string) error {
 		"\t</files>\n"+
 		"\t<rootdir>\n"+
 		"\t\t<dir targ_name=\"sce_sys\">\n"+
-		"\t\t\t<dir targ_name=\"about\" />\n"+
+		"\t\t\t<dir targ_name=\"about\" />\n\t\t\t<dir targ_name=\"trophy\"/>\n"+
 		"\t\t</dir>\n"+
 		"\t\t<dir targ_name=\"sce_module\" />\n"+
 		"\t\t<dir targ_name=\"assets\">\n"+
