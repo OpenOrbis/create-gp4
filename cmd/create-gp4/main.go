@@ -9,12 +9,72 @@ import (
 	"os"
 	"strings"
 	"time"
+	"sort"
+	"path/filepath"
+	"encoding/xml"
 )
 
 // errorExit function will print the given formatted error to stdout and exit immediately after.
 func errorExit(format string, params ...interface{}) {
 	fmt.Printf(format, params...)
 	os.Exit(-1)
+}
+
+type Dir struct {
+	XMLName xml.Name  `xml:"dir"`
+	TargName string   `xml:"targ_name,attr"`
+	Dirs []Dir        `xml:"dir"`
+}
+
+type Rootdir struct {
+	XMLName xml.Name  `xml:"rootdir"`
+	Dirs []Dir        `xml:"dir"`
+}
+
+// check if slice contains specified string
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if strings.Contains(a, e) {
+			return true
+		}
+	}
+	return false
+}
+
+// build rootdir tag
+func buildRootDirTag(files []string) string {
+	var paths []string
+	var rootDir Rootdir;
+
+	// sort files paths by len (to remove duplicate paths later)
+	sort.Slice(files, func(i, j int) bool {
+		return len(files[i]) > len(files[j])
+	})
+
+	// remove duplicate paths
+	for _, file := range files {
+		if file != "" && strings.Contains(file, "/") {
+			if !contains(paths, filepath.Dir(file)) {
+				paths = append(paths, filepath.Dir(file))
+			}
+		}
+	}
+
+	// parse paths
+	for _, path := range paths {
+		split := strings.Split(path, "/")
+		var dir = Dir{TargName: split[0]}
+		var dirPtr *Dir = &dir
+		// parse childs paths
+		for i := 1; i<len(split); i++ {
+			dirPtr.Dirs = append(dirPtr.Dirs, Dir{TargName: split[i]})
+			dirPtr = &dirPtr.Dirs[len(dirPtr.Dirs)-1]
+		}
+		rootDir.Dirs = append(rootDir.Dirs, dir)
+	}
+
+	out, _ := xml.MarshalIndent(rootDir, "\t", "\t")
+	return string(out)
 }
 
 // parseFilesToTags takes a list of files as a space-deliminated string and parses it into a list of tags for the GP4 XML.
@@ -38,6 +98,7 @@ func createGP4(path string, contentID string, files string) error {
 
 	fileList := strings.Split(files, " ")
 	fileTagList := parseFilesToTags(fileList)
+	rootDir := buildRootDirTag(fileList)
 	fileTags := strings.Join(fileTagList, "\n")
 
 	gp4Contents := fmt.Sprintf("<?xml version=\"1.0\"?>\n"+
@@ -59,21 +120,9 @@ func createGP4(path string, contentID string, files string) error {
 		"\t</volume>\n"+
 		"\t<files img_no=\"0\">\n"+
 		"%s"+
-		"\t</files>\n"+
-		"\t<rootdir>\n"+
-		"\t\t<dir targ_name=\"sce_sys\">\n"+
-		"\t\t\t<dir targ_name=\"about\" />\n\t\t\t<dir targ_name=\"trophy\"/>\n"+
-		"\t\t</dir>\n"+
-		"\t\t<dir targ_name=\"sce_module\" />\n"+
-		"\t\t<dir targ_name=\"assets\">\n"+
-		"\t\t\t<dir targ_name=\"audio\" />\n"+
-		"\t\t\t<dir targ_name=\"fonts\" />\n"+
-		"\t\t\t<dir targ_name=\"images\" />\n"+
-		"\t\t\t<dir targ_name=\"misc\" />\n"+
-		"\t\t\t<dir targ_name=\"videos\" />\n"+
-		"\t\t</dir>\n"+
-		"\t</rootdir>\n"+
-		"</psproject>", currentTime, contentID, fileTags)
+		"\n\t</files>\n"+
+		"%s\n"+
+		"</psproject>\n", currentTime, contentID, fileTags, rootDir)
 
 	return ioutil.WriteFile(path, []byte(gp4Contents), 0644)
 }
