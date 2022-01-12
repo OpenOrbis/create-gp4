@@ -87,11 +87,13 @@ func getFileList(filesPath string) []string {
 	}
 
 	// add files recursively
-	filepath.Walk(filesPath, func(path string, _ os.FileInfo, err error) error {
+	filepath.Walk(filesPath, func(path string, f os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		files = append(files, strings.Replace(path, filesPath, "", -1))
+		if !f.IsDir() {
+			files = append(files, strings.Replace(path, filesPath, "", -1))
+		}
 		return nil
 	})
 
