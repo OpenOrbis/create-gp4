@@ -77,6 +77,27 @@ func buildRootDirTag(files []string) string {
 	return string(out)
 }
 
+// build file list from path
+func getFileList(filesPath string) []string {
+	var files[] string
+
+	// be sure path ends with a slash for strings.Replace
+	if !strings.HasSuffix(filesPath, "/") {
+		filesPath += "/"
+	}
+
+	// add files recursively
+	filepath.Walk(filesPath, func(path string, _ os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		files = append(files, strings.Replace(path, filesPath, "", -1))
+		return nil
+	})
+
+	return files
+}
+
 // parseFilesToTags takes a list of files as a space-deliminated string and parses it into a list of tags for the GP4 XML.
 // Returns the list of XML tags for the files.
 func parseFilesToTags(files []string) []string {
@@ -93,13 +114,18 @@ func parseFilesToTags(files []string) []string {
 
 // createGP4 takes a set of values and constructs a .gp4 file and writes it to the given path. Returns an error if creation
 // failed, nil otherwise.
-func createGP4(path string, contentID string, files string) error {
-	currentTime := time.Now().Format("2006-01-02 15:04:05")
+func createGP4(path string, contentID string, files string, filesPath string) error {
+	var fileList []string
 
-	fileList := strings.Split(files, " ")
+	if files != "" {
+		fileList = strings.Split(files, " ")
+	} else {
+		fileList = getFileList(filesPath)
+	}
 	fileTagList := parseFilesToTags(fileList)
 	rootDir := buildRootDirTag(fileList)
 	fileTags := strings.Join(fileTagList, "\n")
+	currentTime := time.Now().Format("2006-01-02 15:04:05")
 
 	gp4Contents := fmt.Sprintf("<?xml version=\"1.0\"?>\n"+
 		"<psproject xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" fmt=\"gp4\" version=\"1000\">\n"+
@@ -132,22 +158,24 @@ func main() {
 	outputFilePathPtr := flag.String("out", "homebrew.gp4", "`output gp4` to write to")
 	contentIDPtr := flag.String("content-id", "", "content ID of the package")
 	contentFilesPtr := flag.String("files", "", "list of files to pack into the package")
+	contentPathPtr := flag.String("path", "", "path to files to pack into the package")
 
 	flag.Parse()
 
 	outputFilePath := *outputFilePathPtr
 	contentID := *contentIDPtr
 	contentFiles := *contentFilesPtr
+	contentPath := *contentPathPtr
 
 	if contentID == "" {
 		errorExit("Content ID not specified, try -content-id=[content ID]\n")
 	}
 
-	if contentFiles == "" {
-		errorExit("Content files not specified, try -files=\"[files, separated by spaces]\"\n")
+	if contentFiles == "" && contentPath == "" {
+		errorExit("Content files or path not specified, try -files=\"[files, separated by spaces]\" or -path=\"[path/to/files]\"\n")
 	}
 
-	if err := createGP4(outputFilePath, contentID, contentFiles); err != nil {
+	if err := createGP4(outputFilePath, contentID, contentFiles, contentPath); err != nil {
 		errorExit("Error writing GP4: %s\n", err.Error())
 	}
 }
