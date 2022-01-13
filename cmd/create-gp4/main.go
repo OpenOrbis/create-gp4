@@ -38,39 +38,95 @@ func contains(s []string, e string) bool {
 			return true
 		}
 	}
+
 	return false
+}
+
+// find a Dir in childs
+func getSubDir(dir *Dir, name string) *Dir {
+	if dir.TargName == name {
+		return dir
+	}
+
+	if len(dir.Dirs) <= 0 {
+		return nil
+	}
+
+	for i := 0; i<len(dir.Dirs); i++ {
+		var d = getSubDir(&dir.Dirs[i], name)
+		if d != nil {
+			return d
+		}
+	}
+
+	return nil
+}
+
+// find a Dir in RootDir
+func getRootDir(rootDir *Rootdir, name string) *Dir {
+	if len(rootDir.Dirs) <= 0 {
+		return nil
+	}
+
+	for i := 0; i<len(rootDir.Dirs); i++ {
+		if rootDir.Dirs[i].TargName == name {
+			return &rootDir.Dirs[i]
+		}
+	}
+
+	return nil
 }
 
 // build rootdir tag
 func buildRootDirTag(files []string) string {
 	var paths []string
+	var pathsClean []string
 	var rootDir Rootdir;
 
-	// sort files paths by len (to remove duplicate paths later)
-	sort.Slice(files, func(i, j int) bool {
-		return len(files[i]) > len(files[j])
+	// keep paths only (remove filenames)
+	for _, file := range files {
+		if file != "" && strings.Contains(file, "/") {
+			paths = append(paths, filepath.Dir(file))
+		}
+	}
+
+	// sort paths by len (to remove duplicate paths later)
+	sort.Slice(paths, func(i, j int) bool {
+		return len(paths[i]) > len(paths[j])
 	})
 
 	// remove duplicate paths
-	for _, file := range files {
-		if file != "" && strings.Contains(file, "/") {
-			if !contains(paths, filepath.Dir(file)) {
-				paths = append(paths, filepath.Dir(file))
-			}
+	for _, path := range paths {
+		if !contains(pathsClean, path) {
+			pathsClean = append(pathsClean, path)
 		}
 	}
 
 	// parse paths
-	for _, path := range paths {
+	for _, path := range pathsClean {
 		split := strings.Split(path, "/")
-		var dir = Dir{TargName: split[0]}
-		var dirPtr *Dir = &dir
-		// parse childs paths
-		for i := 1; i<len(split); i++ {
-			dirPtr.Dirs = append(dirPtr.Dirs, Dir{TargName: split[i]})
-			dirPtr = &dirPtr.Dirs[len(dirPtr.Dirs)-1]
+		var dirPtr *Dir = getRootDir(&rootDir, split[0])
+		// new path spotted
+		if dirPtr == nil {
+			var dir = Dir{TargName: split[0]}
+			dirPtr = &dir
+			for i := 1; i<len(split); i++ {
+				dirPtr.Dirs = append(dirPtr.Dirs, Dir{TargName: split[i]})
+				dirPtr = &dirPtr.Dirs[len(dirPtr.Dirs)-1]
+			}
+			rootDir.Dirs = append(rootDir.Dirs, dir)
+		} else {
+			// append to existing path
+			for i := 1; i<len(split); i++ {
+				var dir = getSubDir(dirPtr, split[i])
+				if dir != nil {
+					dirPtr = dir
+					continue
+				}
+				dirPtr.Dirs = append(dirPtr.Dirs, Dir{TargName: split[i]})
+				dirPtr = &dirPtr.Dirs[len(dirPtr.Dirs)-1]
+			}
 		}
-		rootDir.Dirs = append(rootDir.Dirs, dir)
 	}
 
 	out, _ := xml.MarshalIndent(rootDir, "\t", "\t")
