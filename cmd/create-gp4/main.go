@@ -85,7 +85,7 @@ func buildRootDirTag(files []string) string {
 
 	// keep paths only (remove filenames)
 	for _, file := range files {
-		if file != "" && strings.Contains(file, "/") {
+		if file != "" && strings.Contains(file, string(os.PathSeparator)) {
 			paths = append(paths, filepath.Dir(file))
 		}
 	}
@@ -104,7 +104,7 @@ func buildRootDirTag(files []string) string {
 
 	// parse paths
 	for _, path := range pathsClean {
-		split := strings.Split(path, "/")
+		split := strings.Split(path, string(os.PathSeparator))
 		var dirPtr *Dir = getRootDir(&rootDir, split[0])
 		// new path spotted
 		if dirPtr == nil {
@@ -138,8 +138,8 @@ func getFileList(filesPath string) []string {
 	var files[] string
 
 	// be sure path ends with a slash for strings.Replace
-	if !strings.HasSuffix(filesPath, "/") {
-		filesPath += "/"
+	if !strings.HasSuffix(filesPath, string(os.PathSeparator)) {
+		filesPath += string(os.PathSeparator)
 	}
 
 	// add files recursively
