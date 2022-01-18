@@ -85,8 +85,8 @@ func buildRootDirTag(files []string) string {
 
 	// keep paths only (remove filenames)
 	for _, file := range files {
-		if file != "" && strings.Contains(file, string(os.PathSeparator)) {
-			paths = append(paths, filepath.Dir(file))
+		if file != "" && strings.Contains(file, "/") {
+			paths = append(paths, filepath.ToSlash(filepath.Dir(file)))
 		}
 	}
 
@@ -104,7 +104,7 @@ func buildRootDirTag(files []string) string {
 
 	// parse paths
 	for _, path := range pathsClean {
-		split := strings.Split(path, string(os.PathSeparator))
+		split := strings.Split(path, "/")
 		var dirPtr *Dir = getRootDir(&rootDir, split[0])
 		// new path spotted
 		if dirPtr == nil {
@@ -136,19 +136,21 @@ func buildRootDirTag(files []string) string {
 // build file list from path
 func getFileList(filesPath string) []string {
 	var files[] string
+	var osPath = filepath.ToSlash(filesPath)
 
 	// be sure path ends with a slash for strings.Replace
-	if !strings.HasSuffix(filesPath, string(os.PathSeparator)) {
-		filesPath += string(os.PathSeparator)
+	if !strings.HasSuffix(osPath, "/") {
+		osPath += "/"
 	}
 
 	// add files recursively
-	filepath.Walk(filesPath, func(path string, f os.FileInfo, err error) error {
+	filepath.Walk(osPath, func(path string, f os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		if !f.IsDir() {
-			files = append(files, strings.Replace(path, filesPath, "", -1))
+			path = filepath.ToSlash(path)
+			files = append(files, strings.Replace(path, osPath, "", -1))
 		}
 		return nil
 	})
@@ -163,7 +165,8 @@ func parseFilesToTags(files []string) []string {
 
 	for _, file := range files {
 		if file != "" {
-			fileTags = append(fileTags, fmt.Sprintf("\t\t<file targ_path=\"%s\" orig_path=\"%s\" />", file, file))
+			var f = filepath.ToSlash(file)
+			fileTags = append(fileTags, fmt.Sprintf("\t\t<file targ_path=\"%s\" orig_path=\"%s\" />", f, f))
 		}
 	}
 
